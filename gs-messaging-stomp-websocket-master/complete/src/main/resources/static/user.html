@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>HN Spring WebSocket</title>
+<script type="text/javascript" src="/js/sockjs-0.3.4.min.js"></script>
+<script type="text/javascript" src="/js/stomp.js"></script>
+<script type="text/javascript">
+	var stompClient = null;
+
+	function connect() {
+		var socket = new SockJS('/user');
+		stompClient = Stomp.over(socket);
+		stompClient.connect({}, function(frame) {
+			console.log('Connected:' + frame);
+			stompClient.subscribe('/topic/chat', function(message) {
+				showMessage(JSON.parse(message.body).content);
+			});
+
+			loadGroups();
+		});
+	}
+
+	function loadGroups() {
+
+		var xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function() {
+			if (xmlhttp.readyState == XMLHttpRequest.DONE) {
+				//console.log(xmlhttp.responseText);
+				var groups = JSON.parse(xmlhttp.responseText);
+				var select = document.getElementById('group');
+
+				for ( var index in groups) {
+					var group = groups[index];
+					select.appendChild(createOptionGroup(group));
+				}
+			}
+		};
+
+		xmlhttp.open("GET", "/groups", true);
+		xmlhttp.send();
+	}
+
+	function send() {
+		var text = document.getElementById('message').value;
+		console.log("Sending...." + text);
+		stompClient.send("/app/message", {}, JSON.stringify({
+			'content' : text
+		}));
+	}
+
+	function createOptionGroup(group) {
+
+		var option = document.createElement('option');
+		option.appendChild(document.createTextNode(group.name));
+		var att = document.createAttribute("value");
+		att.value = group.id;
+		option.setAttributeNode(att);
+		return option;
+	}
+
+	function showMessage(text) {
+		var response = document.getElementById('response');
+		var p = document.createElement('p');
+		p.appendChild(document.createTextNode(text));
+		response.appendChild(p);
+	}
+
+	function save() {
+		var username = document.getElementById('username').value;
+		var email = document.getElementById('email').value;
+		var password = document.getElementById('password').value;
+		var age = document.getElementById('age').value;
+		var groupId = document.getElementById('groupId').value;
+
+		console.log("Sending......" + username);
+		stompClient.send("/app/user", {}, JSON.stringify({
+
+			'username' : username,
+			'password' : password,
+			'email' : email,
+			'age' : age,
+			'groupId' : groupId
+		}));
+	}
+</script>
+</head>
+<body onload="connect()">
+	<h1>Add User</h1>
+	<form action="javascript:save();" method="post">
+		<p>
+			Tai Khoan: <input type="text" id="username" name="username" />
+		</p>
+		<p>
+			Mat khau: <input type="text" id="password" name="password" />
+		</p>
+		<p>
+			Email : <input type="text" id="email" name="email" />
+		</p>
+		<p>
+			Tuoi : <input type="text" id="age" name="age" />
+		</p>
+		<p>
+			Nhom (ID) : <input type="text" id="groupId" name="groupId" />
+		</p>
+		<p class="submit">
+			<input type="submit" value="Luu" name="save" />
+		</p>
+	</form>
+
+	<p id="response"></p>
+	Nhom(ID) :
+	<select id="group" name="group"></select>
+</body>
+</html>

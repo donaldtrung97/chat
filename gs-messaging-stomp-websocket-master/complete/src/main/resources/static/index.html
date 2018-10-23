@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>HN Spring Socket</title>
+<script src="/js/sockjs-0.3.4.min.js"></script>
+<script src="/js/stomp.js"></script>
+<link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="/main.css" rel="stylesheet">
+<script src="/webjars/jquery/jquery.min.js"></script>
+<script src="/webjars/sockjs-client/sockjs.min.js"></script>
+<script src="/webjars/stomp-websocket/stomp.min.js"></script>
+<script type="text/javascript">
+	var stompClient = null;
+
+	function disconnect() {
+		
+		enableChatbox(false);
+		if (stompClient != null) {
+			stompClient.disconnect();
+		}
+
+		console.log("Disconnected stomp client...");
+	}
+
+	function connect() {
+		
+enableChatbox(true);
+var name = getParameterByName('name');
+		var socket = new SockJS('/message');
+		
+		stompClient = Stomp.over(socket);
+		stompClient.connect({}, function(frame) {
+			
+			console.log('Connected:' + frame);
+			 stompClient.subscribe('/topic/chat' +name, function (message){
+				var text = JSON.parse(message.body).content;
+				//document.getElementById('response').innerHTML = text ; 
+				showMessage(text);
+			 
+			 });  
+		});
+	}
+	
+	function getParameterByName(name) {
+		name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+		var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+		results = regex.exec(location.search);
+		return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+         }  
+	
+	
+	function send() {
+		var text = document.getElementById('message').value;
+		console.log("Sending...." + text);
+		stompClient.send("/app/message", {}, JSON.stringify({
+			'content':text
+		}));
+	}
+	
+	function showMessage(text) {
+		var response = document.getElementById('response');
+		var p = document.createElement('p');
+		p.appendChild(document.createTextNode(text));
+		response.appendChild(p);
+	}
+	
+	 function enableChatbox(connected) {
+		document.getElementById('connect').disabled = connected ; 
+		document.getElementById('disconnect').disabled = !connected;
+		
+		if ( connected ) {
+			document.getElementById('conversationDiv').style.visibility = 'visible' ; 
+			
+		} else {
+			document.getElementById('conversationDiv').style.visibility = 'hidden';
+			
+		}
+	} 
+</script>
+</head>
+<body onload="disconnect()">
+	<div>
+		<button id="connect" onclick="connect();">Connect</button>
+		<button id="disconnect" onclick="disconnect();">Disconnect</button>
+	</div>
+	<div id="conversationDiv">
+		<label> Message:</label><input type="text" id="message" />
+		<button id="send" onclick="send();">Send</button>
+		<p id="response"></p>
+	</div>
+	<h2>Well come ha noi websocket</h2>
+</body>
+</html>
